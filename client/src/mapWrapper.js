@@ -19,6 +19,7 @@ var MapWrapper = function (container, coords, zoom) {
   this.animationRunning = null
   this.clock2 = new Clock()
   this.clock = this.clock2.clockInstances[0]
+  this.clock.setCenter= false
   this.totalSeconds = null
   this.animeTimeSeconds = []
   this.timeouts = []
@@ -126,7 +127,6 @@ MapWrapper.prototype = {
       this.currentRoutes.pop()
       var toDelete = this.allRenderedRoutes.pop()
       toDelete.setMap(null)
-      console.log(no_routes)
     }else{
       this.currentRoute = null
       this.restartClock()
@@ -165,9 +165,8 @@ MapWrapper.prototype = {
         this.clearMarkers()
         // Distance and time update with new route
         this.directionsDisplay.addListener('directions_changed', function () {
-          this.currentRoute = this.directionsDisplay.getDirections()
           this.currentRoutes.pop
-          this.currentRoutes.push(this.currentRoute)
+          this.currentRoute = this.directionsDisplay.getDirections()
           no_steps = this.currentRoute.routes[0].legs[0].steps.length - 1
           var latitude = this.currentRoute.routes[0].legs[0].steps[no_steps].end_location.lat()
           var longitude = this.currentRoute.routes[0].legs[0].steps[no_steps].end_location.lng()
@@ -175,6 +174,7 @@ MapWrapper.prototype = {
           localStorage.setItem('finishLongitude', longitude)
           this.computeTotalDistance(this.currentRoute)
           this.computeEstimatedTime(this.currentRoute)
+          this.currentRoutes.push(this.currentRoute)
         }.bind(this))
       }
     }.bind(this))
