@@ -6,7 +6,7 @@ var MapWrapper = function (container, coords, zoom) {
   this.restaurantMarkers = []
   this.endmarkers = []
   this.allRenderedRoutes = []
-  this.currentRoutes = []
+  // this.currentRoutes = []
   this.currentRoute = null
   this.googleMap = new google.maps.Map(container, {
     center: coords,
@@ -15,6 +15,7 @@ var MapWrapper = function (container, coords, zoom) {
   this.route = null
   this.polyline = null
   this.directionsDisplay = null
+  this.directionsService = null
   this.animationMarker = null
   this.animationRunning = null
   this.clock2 = new Clock()
@@ -121,12 +122,14 @@ MapWrapper.prototype = {
     this.clearAnimationFrames()
     this.clearMarkers()
     this.clock.animationRunning = false
-    no_routes = this.allRenderedRoutes.length
-    if(no_routes>0){
-      this.currentRoute=this.currentRoutes[no_routes-2]
-      this.currentRoutes.pop()
+     var visibleRoutes = this.allRenderedRoutes.length
+    if(visibleRoutes>0){
       var toDelete = this.allRenderedRoutes.pop()
-      toDelete.setMap(null)
+      if(visibleRoutes>1){
+         this.currentRoute=this.allRenderedRoutes[visibleRoutes-2].directions
+      }
+      // var toDelete = this.allRenderedRoutes.pop()
+      if(toDelete) toDelete.setMap(null)
     }else{
       this.currentRoute = null
       this.restartClock()
@@ -144,17 +147,21 @@ MapWrapper.prototype = {
 
 
   drawRoute: function (directionsResult) {
-    var directionsService = new google.maps.DirectionsService()
+    this.directionsService = new google.maps.DirectionsService()
     this.directionsDisplay = new google.maps.DirectionsRenderer({
       draggable: true,
       map: this.googleMap
     })
-    this.allRenderedRoutes.push(this.directionsDisplay)
-    directionsService.route(directionsResult, function (res, status) {
+    
+
+    this.directionsService.route(directionsResult, function (res, status) {
       if (status == 'OK') {
         this.directionsDisplay.setDirections(res)
+        console.log(this.directionsDisplay)
+        console.log(res)
+        this.allRenderedRoutes.push(this.directionsDisplay)
         this.currentRoute = res
-        this.currentRoutes.push(res)
+        // this.currentRoutes.push(res)
         var no_steps = res.routes[0].legs[0].steps.length - 1
         var latitude = res.routes[0].legs[0].steps[no_steps].end_location.lat()
         var longitude = res.routes[0].legs[0].steps[no_steps].end_location.lng()
@@ -165,8 +172,10 @@ MapWrapper.prototype = {
         this.clearMarkers()
         // Distance and time update with new route
         this.directionsDisplay.addListener('directions_changed', function () {
-          this.currentRoutes.pop
-          this.currentRoute = this.directionsDisplay.getDirections()
+          // this.currentRoutes.pop
+          // this.currentRoute = this.directionsDisplay.getDirections()
+          this.allRenderedRoutes.pop()
+          this.allRenderedRoutes.push(this.directionsDisplay)
           no_steps = this.currentRoute.routes[0].legs[0].steps.length - 1
           var latitude = this.currentRoute.routes[0].legs[0].steps[no_steps].end_location.lat()
           var longitude = this.currentRoute.routes[0].legs[0].steps[no_steps].end_location.lng()
@@ -174,7 +183,7 @@ MapWrapper.prototype = {
           localStorage.setItem('finishLongitude', longitude)
           this.computeTotalDistance(this.currentRoute)
           this.computeEstimatedTime(this.currentRoute)
-          this.currentRoutes.push(this.currentRoute)
+          // this.currentRoutes.push(this.currentRoute)
         }.bind(this))
       }
     }.bind(this))
@@ -258,10 +267,17 @@ placesService: function (searchCenterCoords, radius, type) {
   },
 
   updateClock: function () {
-    console.log("mapwrap", this.clock)
     this.clock.pauseTheClock()
     this.clock.addSeconds(this.animeTimeSeconds[0])
     // this.clock.addSeconds(this.animeTimeSeconds[0], this.clock.drawClock())
+  },
+
+  setMapBounds(){
+    var first = this.animeCoordsArray[0]
+    var last = this.animeCoordsArray[this.animeCoordsArray.length-1]
+    var bounds = new google.maps.LatLngBounds(
+                first, last);
+    this.googleMap.fitBounds(bounds)
   },
 /// //////////////////////////////////////////////////////////////////////
 /// /////////////        ANIMATION START          ////////////////////////
@@ -278,7 +294,7 @@ animateRoute: function () {
     if(this.currentRoute){
       this.getAppropriateMarker()
     this.autoRefresh(this.googleMap, this.currentRoute.routes[0].overview_path) 
-  }
+      }
   },
 
   clearAnimationFrames: function(callback){
@@ -312,21 +328,16 @@ animateRoute: function () {
     for (var i = 0; i < pathCoords.length; i++) {
       this.animeCoordsArray.push(pathCoords[i])
       this.animeTimeSeconds.push(secondsFraction)
+      this.setMapBounds()
       this.timeouts.push(setTimeout(function (coords) {
       this.polyline.getPath().push(coords)
       this.moveMarker(this.googleMap, this.animationMarker, coords)
       }.bind(this), 100 * i, pathCoords[i]))
     }
-
+      
   },
 
-  setMapBounds(){
-    var first = this.animeCoordsArray[0]
-    var last = this.animeCoordsArray[this.animeCoordsArray.length-1]
-    var bounds = new google.maps.LatLngBounds(
-                first, last);
-    this.googleMap.fitBounds(bounds)
-  },
+  
 
   getAppropriateMarker(){
     if (this.currentRoute.request.travelMode === 'BICYCLING') {
@@ -366,7 +377,7 @@ animateRoute: function () {
   }
     if (this.animeCoordsArray.length === 0) {
       this.clearAnimation()
-      setTimeout(this.restartClock.bind(this),4000)
+      setTimeout(this.restartClock.bind(this),2000)
     }
   },
 

@@ -106,8 +106,6 @@ drawStopWatch: function(ctx, radius){
 drawTime: function(ctx, radius){
 
   if(this.haveUserTime){
-    console.log(ctx)
-    console.log(this)
     var now = new Date();
     var hour = now.getHours();
     var minute = now.getMinutes();
