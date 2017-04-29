@@ -26,6 +26,7 @@ var MapWrapper = function (container, coords, zoom) {
   this.timeouts = []
   this.animeCoordsArray = []
   this.transportMethod = 'BICYCLING'
+  this.infos=[]
 }
 
 MapWrapper.prototype = {
@@ -157,8 +158,6 @@ MapWrapper.prototype = {
     this.directionsService.route(directionsResult, function (res, status) {
       if (status == 'OK') {
         this.directionsDisplay.setDirections(res)
-        console.log(this.directionsDisplay)
-        console.log(res)
         this.allRenderedRoutes.push(this.directionsDisplay)
         this.currentRoute = res
         // this.currentRoutes.push(res)
@@ -233,12 +232,25 @@ placesService: function (searchCenterCoords, radius, type) {
       type: [ type ]
     }, function (results, status) {
       if (status === google.maps.places.PlacesServiceStatus.OK) {
+        console.log(results)
         var numberToShow = Math.min(results.length, 8)
         for (var i = 0; i < numberToShow; i++) {
           this.createMarker(results[i])
         }
       }
     }.bind(this))
+  },
+
+ closeInfos: function (){
+   
+     if(this.infos.length > 0){
+        /* detach the info-window from the marker ... undocumented in the API docs */
+        this.infos[0].set("marker", null)
+        /* and close it */
+        this.infos[0].close();
+        /* blank the array */
+        this.infos =[];
+     }
   },
 
   // see here for types : https://developers.google.com/places/supported_types
@@ -261,9 +273,11 @@ placesService: function (searchCenterCoords, radius, type) {
 
     this.restaurantMarkers.push(marker)
     google.maps.event.addListener(marker, 'click', function () {
+      this.closeInfos()
       infowindow.setContent(place.name)
       infowindow.open(this.googleMap, marker)
-    })
+      this.infos.push(infowindow)
+    }.bind(this))
   },
 
   updateClock: function () {

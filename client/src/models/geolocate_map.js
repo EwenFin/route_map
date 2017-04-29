@@ -15,6 +15,10 @@ GeoLocate.prototype = {
         infoWindow.setPosition(pos)
         infoWindow.setContent('Your Location')
         infoWindow.open(this.map)
+        setTimeout(function(){
+          infoWindow.set("marker", null)
+          infoWindow.close();
+        }.bind(this), 3000)
         this.map.setCenter(pos)
         this.map.setZoom(7)
       }.bind(this), function () {
