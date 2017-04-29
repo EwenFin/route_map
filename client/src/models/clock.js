@@ -20,15 +20,13 @@ Clock.prototype = {
   },
 
   drawClock: function() {
-    console.log(clockInstances)
   var canvas = document.getElementById("canvas");
   var radius = canvas.height / 2;
   var ctx = canvas.getContext("2d");
   if(this.setCenter){
     ctx.translate(radius, radius)
     this.setCenter = false}
-   if(this.animationRunning) {
-    
+   if(this.animationRunning) { 
     clockInstances[0].pauseTheClock()
     this.drawFace(ctx, radius);
     this.drawNumbers(ctx, radius);

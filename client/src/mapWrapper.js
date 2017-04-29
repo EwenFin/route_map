@@ -274,9 +274,9 @@ animateRoute: function () {
     this.clock.hour = +userTime.substring(0, 2)
     this.clock.minute = +userTime.substring(3)
     this.clock.second = 0
-
     this.clearAnimationFrames()
     if(this.currentRoute){
+      this.getAppropriateMarker()
     this.autoRefresh(this.googleMap, this.currentRoute.routes[0].overview_path) 
   }
   },
@@ -297,8 +297,6 @@ animateRoute: function () {
 
   autoRefresh: function (map, pathCoords) {
 
-    this.getAppropriateMarker()
-
     this.polyline = new google.maps.Polyline({
       path: [],
       geodesic: true,
@@ -315,11 +313,19 @@ animateRoute: function () {
       this.animeCoordsArray.push(pathCoords[i])
       this.animeTimeSeconds.push(secondsFraction)
       this.timeouts.push(setTimeout(function (coords) {
-        this.polyline.getPath().push(coords)
-        this.moveMarker(this.googleMap, this.animationMarker, coords)
-        // var currentCoords = {lat: coords.lat(), lng: coords.lng()}
+      this.polyline.getPath().push(coords)
+      this.moveMarker(this.googleMap, this.animationMarker, coords)
       }.bind(this), 100 * i, pathCoords[i]))
     }
+
+  },
+
+  setMapBounds(){
+    var first = this.animeCoordsArray[0]
+    var last = this.animeCoordsArray[this.animeCoordsArray.length-1]
+    var bounds = new google.maps.LatLngBounds(
+                first, last);
+    this.googleMap.fitBounds(bounds)
   },
 
   getAppropriateMarker(){
@@ -333,6 +339,8 @@ animateRoute: function () {
         optimized: false, // <-- required for animated gif
         animation: google.maps.Animation.DROP,
         icon: icon
+        // anchor:new google.maps.Point(0.5,0.5),
+        // rotation: this.animeHeading
       })
     } else {
       var icon = {
@@ -349,14 +357,16 @@ animateRoute: function () {
 
   moveMarker: function (map, marker, latlng) {
     marker.setPosition(latlng)
-    // this.googleMap.panTo(latlng)
     var coords = {lat: latlng.lat(), lng: latlng.lng()}
     this.animeCoordsArray.shift()
     this.animeTimeSeconds.shift()
     this.updateClock()
+  if(this.animeCoordsArray.length>1){
+    this.animeHeading = google.maps.geometry.spherical.computeHeading(latlng, this.animeCoordsArray[0]);
+  }
     if (this.animeCoordsArray.length === 0) {
       this.clearAnimation()
-      this.restartClock()
+      setTimeout(this.restartClock.bind(this),4000)
     }
   },
 
@@ -365,14 +375,12 @@ animateRoute: function () {
     this.clock.createAClock()
   },
 
-
-
 clearAnimation: function(){
 
   setTimeout(function () {
     this.polyline.setMap(null)
     this.animationMarker.setMap(null)
-  }.bind(this), 1000) 
+  }.bind(this), 2000) 
 },
 
 pauseAnimation: function () {
@@ -383,6 +391,7 @@ pauseAnimation: function () {
       } 
       this.animationRunning = false
     } else {
+      this.setMapBounds()
       this.animationRunning = true
       for (var j = 0; j < this.animeCoordsArray.length; j++) {
         this.timeouts.push(setTimeout(function (coords) {
@@ -393,11 +402,9 @@ pauseAnimation: function () {
     }
   },
 
-
   /////////////////////////////////////////////////////////////////////////
   ////////////////        ANIMATION END            ////////////////////////
   /////////////////////////////////////////////////////////////////////////
-
 
 }
 
